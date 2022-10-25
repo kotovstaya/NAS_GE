@@ -11,6 +11,9 @@ from torch import nn
 
 @dataclass
 class DefaultGrammar:
+    """
+
+    """
     grammar: tp.Optional[tp.Dict[str, tp.List[str]]] = None
 
     def init_grammar(self):
@@ -81,6 +84,14 @@ class ContextFreeParser:
                           s: tp.Optional[int],
                           e: tp.Optional[int],
                           geno: int) -> tp.Optional[str]:
+        """
+
+        :param phenotype:
+        :param s:
+        :param e:
+        :param geno:
+        :return:
+        """
         if s is not None:
             substitutes = self.grammar.get(phenotype[s:e])
             return substitutes[geno % len(substitutes)]
@@ -91,6 +102,12 @@ class ContextFreeParser:
                     re_pattern: re.Pattern = None) -> tp.Tuple[
                                                             tp.Optional[int],
                                                             tp.Optional[int]]:
+        """
+
+        :param phenotype:
+        :param re_pattern:
+        :return:
+        """
         if re_pattern is None:
             re_pattern = self.re_pattern
         p = re.search(re_pattern, phenotype)
@@ -98,6 +115,14 @@ class ContextFreeParser:
 
     @staticmethod
     def _replace_element(phenotype, s, e, replacer) -> str:
+        """
+
+        :param phenotype:
+        :param s:
+        :param e:
+        :param replacer:
+        :return:
+        """
         if s is not None:
             if callable(replacer):
                 replacer = replacer(0)
@@ -105,6 +130,11 @@ class ContextFreeParser:
         return phenotype
 
     def _fill_incomplete(self, phenotype: str):
+        """
+
+        :param phenotype:
+        :return:
+        """
         s = True
         while s is not None:
             s, e = self._find_place(phenotype)
@@ -113,6 +143,11 @@ class ContextFreeParser:
         return phenotype
 
     def _count_layers(self, phenotype: str) -> str:
+        """
+
+        :param phenotype:
+        :return:
+        """
         s = True
         count = 0
         while s is not None:
@@ -126,6 +161,14 @@ class ContextFreeParser:
         return ",".join([layer_num, layer_type] + tail)
 
     def _update_fc(self, layer_num, layer_type, tail, output_size) -> tp.Tuple[str, str]:
+        """
+
+        :param layer_num:
+        :param layer_type:
+        :param tail:
+        :param output_size:
+        :return:
+        """
         new_tail = []
         if layer_num == '0':
             new_tail.append(f"in_features:{self.input_size}")
@@ -136,17 +179,49 @@ class ContextFreeParser:
         return output_size, self._get_new_layer(layer_num, layer_type, new_tail)
 
     def _update_do(self, layer_num, layer_type, tail, output_size) -> tp.Tuple[str, str]:
+        """
+
+        :param layer_num:
+        :param layer_type:
+        :param tail:
+        :param output_size:
+        :return:
+        """
         new_tail = [f"p:{self.grammar.number_mapping(tail[0].split(':')[1])}"]
         return output_size, self._get_new_layer(layer_num, layer_type, new_tail)
 
     def _update_bn(self, layer_num, layer_type, tail, output_size) -> tp.Tuple[str, str]:
+        """
+
+        :param layer_num:
+        :param layer_type:
+        :param tail:
+        :param output_size:
+        :return:
+        """
         new_tail = [f"num_features:{output_size}"]
         return output_size, self._get_new_layer(layer_num, layer_type, new_tail)
 
     def _update_unknown(self, layer_num, layer_type, tail, output_size) -> tp.Tuple[int, str]:
+        """
+
+        :param layer_num:
+        :param layer_type:
+        :param tail:
+        :param output_size:
+        :return:
+        """
         return output_size, self._get_new_layer(layer_num, layer_type, tail)
 
     def _update_layer(self, layer_num, layer_type, tail, output_size) -> tp.Tuple[int, str]:
+        """
+
+        :param layer_num:
+        :param layer_type:
+        :param tail:
+        :param output_size:
+        :return:
+        """
         if layer_type == 'fc':
             output_size, new_layer = self._update_fc(layer_num, layer_type,
                                                      tail, output_size)
@@ -163,6 +238,11 @@ class ContextFreeParser:
         return output_size, new_layer
 
     def _fill_numbers(self, layers: tp.List[str]) -> tp.List[str]:
+        """
+
+        :param layers:
+        :return:
+        """
         result = []
         output_size = None
         for ix, layer_info in enumerate(layers):
@@ -187,9 +267,19 @@ class ContextFreeParser:
         return result
 
     def _drop_invalid_layers(self, phenotype):
+        """
+
+        :param phenotype:
+        :return:
+        """
         return [el for el in phenotype if "_|" not in el and el != ""]
 
     def internal_representation(self, genotype: tp.List[int]) -> tp.List[str]:
+        """
+
+        :param genotype:
+        :return:
+        """
         phenotype = self.enter_expr
         for geno in genotype:
             s, e = self._find_place(phenotype)
@@ -221,6 +311,11 @@ class PyTorchModelBuilder:
 
     @staticmethod
     def _create_dict_with_parameters(tail: str) -> tp.Dict[str, tp.Any]:
+        """
+
+        :param tail:
+        :return:
+        """
         if tail == "empty":
             tail = "{}"
         else:
@@ -231,6 +326,11 @@ class PyTorchModelBuilder:
         return eval(tail)
 
     def build_model(self, internal_representation: tp.List[str]) -> nn.Sequential:
+        """
+
+        :param internal_representation:
+        :return:
+        """
         modules = []
         for layer_info in internal_representation:
             layer_num, layer_name, *tail = layer_info.split(",")
