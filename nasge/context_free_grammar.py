@@ -2,12 +2,10 @@ import typing as tp
 from dataclasses import dataclass
 import numpy as np
 import re
-import torch
+
 from torch import nn
+from nasge.genetic_algorithm import GAEvolution, Individual
 
-
-# class BaseGrammar:
-#     grammar: tp.Dict[str, tp.List[str]]
 
 @dataclass
 class DefaultGrammar:
@@ -20,22 +18,22 @@ class DefaultGrammar:
         self.grammar = {
             "<expr>": [
                 "<fc>$",
-                "<fc>$<expr>"
-                "<fc>$<bn>",
-                "<fc>$<do>$<bn>",
-                "<fc>$<bn>$<do>",
-                "<fc>$<bn>$<expr>",
-                "<fc>$<bn>$<do>$<expr>",
-                "<fc>$<act>$<bn>",
-                "<fc>$<act>$<bn>$<do>",
-                "<fc>$<act>$<bn>$<expr>",
-                "<fc>$<act>$<bn>$<do>$<expr>",
-                "<fc>$<bn>$<act>",
-                "<fc>$<bn>$<act>$<do>",
-                "<fc>$<bn>$<act>$<expr>",
-                "<fc>$<bn>$<act>$<do>$<expr>",
-                "<fc>$<bn>$<do>$<act>",
-                "<fc>$<bn>$<do>$<act>$<expr>",
+                "<fc>$<expr>$"
+                "<fc>$<bn>$",
+                "<fc>$<do>$<bn>$",
+                "<fc>$<bn>$<do>$",
+                "<fc>$<bn>$<expr>$",
+                "<fc>$<bn>$<do>$<expr>$",
+                "<fc>$<act>$<bn>$",
+                "<fc>$<act>$<bn>$<do>$",
+                "<fc>$<act>$<bn>$<expr>$",
+                "<fc>$<act>$<bn>$<do>$<expr>$",
+                "<fc>$<bn>$<act>$",
+                "<fc>$<bn>$<act>$<do>$",
+                "<fc>$<bn>$<act>$<expr>$",
+                "<fc>$<bn>$<act>$<do>$<expr>$",
+                "<fc>$<bn>$<do>$<act>$",
+                "<fc>$<bn>$<do>$<act>$<expr>$",
             ],
             "<fc>": ["layer,fc,in_features:<in_ftrs>,out_features:<out_ftrs>"],
             "<bn>": ["layer,bn,num_features:<num_ftrs>"],
@@ -373,14 +371,18 @@ class PyTorchModelWrapper:
     def get_model(self, phenotype) -> nn.Sequential:
         return self.model_builder.build_model(phenotype)
 
-    def create_instance(self):
-        genotype = self.get_genotype()
+    def get_phenotype_and_model(self, genotype):
         phenotype = self.get_phenotype(genotype)
         model = self.get_model(phenotype)
-        return genotype, phenotype, model
+        return phenotype, model
+
+    def create_instance(self) -> Individual:
+        genotype = self.get_genotype()
+        phenotype, model = self.get_phenotype_and_model(genotype)
+        return Individual(genotype, phenotype, model)
 
 
-class PyTorchModelTrainer:
+class ContextFreePopulation:
     def __init__(self,
                  grammer_class,
                  model_builder,
@@ -392,6 +394,7 @@ class PyTorchModelTrainer:
                  population_size=10,
                  ):
         self.population_size = population_size
+        self.phenotype_range = phenotype_range
         self.ptmw = PyTorchModelWrapper(
             grammer_class=grammer_class,
             model_builder=model_builder,
@@ -402,13 +405,13 @@ class PyTorchModelTrainer:
             phenotype_range=phenotype_range
         )
 
-    def create_population(self):
+    def create_population(self) -> tp.List[Individual]:
         return [self.ptmw.create_instance()
                 for _ in range(self.population_size)]
 
 
 if __name__ == "__main__":
-    ptmt = PyTorchModelTrainer(
+    ptmt = ContextFreePopulation(
         grammer_class=DefaultGrammar,
         model_builder=PyTorchModelBuilder,
         parser_class=ContextFreeParser,
@@ -416,11 +419,18 @@ if __name__ == "__main__":
         output_size=1,
         phenotype_size=30,
         phenotype_range=(0, 30),
-        population_size=3
+        population_size=20
     )
 
-    population = ptmt.create_population()
-    for g, p, m in population:
-        print(g)
-        print(p)
-        print(m)
+    evolution = GAEvolution(ptmt)
+    population = evolution.eval(
+        offspring_fraction=0.2,
+        crossover_probability=0.5,
+        individual_mutate_probability=0.5,
+        genoelem_mutate_probability=0.2,
+    )
+
+    for pop in population:
+        print(pop.genotype)
+        # print(pop.phenotype)
+        # print(pop.model)
