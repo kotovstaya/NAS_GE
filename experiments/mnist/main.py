@@ -53,3 +53,4 @@ if __name__ == "__main__":
 
     best_score, best_individ, fitnesses, pops = ptmt.run()
     ptmt.save(parameters["model_path"])
+    
