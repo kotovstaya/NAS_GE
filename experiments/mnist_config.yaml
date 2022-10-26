@@ -1,0 +1,17 @@
+parameters:
+  genoelement_range:
+    - 0
+    - 30
+  genotype_size: 30
+  grammar_path: ./../grammers/fc.yaml
+  population_size: 10
+  offspring_fraction: 0.9
+  crossover_prob: 0.9
+  individual_mutate_prob:  0.9
+  genoelem_mutate_prob: 0.9
+  epochs: 3
+  select_max: True
+  train_fraction:  0.9
+  train_batch_size: 256
+  valid_batch_size: 6000
+  lr: 0.001

@@ -1,38 +1,85 @@
 import typing as tp
+import tqdm
 import numpy as np
-from dataclasses import dataclass
-from torch import nn
-from torch.utils.data import DataLoader
 
-
-@dataclass
-class Individual:
-    genotype: tp.List[int]
-    phenotype: tp.List[str]
-    model: nn.Sequential
-    full_model: nn.Module = None
+import nasge.utils as nasge_utils
+from nasge.gramm_parser import InstanceBuilder, Individual
 
 
 class GAEvolution:
-    """
+    def __init__(self,
+                 instance_builder: InstanceBuilder,
+                 genoelement_range: tp.Tuple[int, int],
+                 genotype_size: int,
+                 population_size: int,
+                 fitness_calculator: callable,
+                 offspring_fraction: float,
+                 crossover_probability: float,
+                 individual_mutate_probability: float,
+                 genoelem_mutate_probability: float,
+                 epochs: int,
+                 select_max: bool):
+        self.instance_builder = instance_builder
+        self.genoelement_range = genoelement_range
+        self.genotype_size = genotype_size
+        self.population_size = population_size
+        self.fitness_calculator = fitness_calculator
+        self.offspring_fraction = offspring_fraction
+        self.crossover_probability = crossover_probability
+        self.individual_mutate_probability = individual_mutate_probability
+        self.genoelem_mutate_probability = genoelem_mutate_probability
+        self.epochs = epochs
+        self.select_max = select_max
 
-    """
-    def __init__(self, population_builder):
-        self.population_builder = population_builder
+        self.logger = nasge_utils.get_logger("GAEvolution")
 
-    def init_population(self) -> tp.List[Individual]:
-        return self.population_builder.create_population()
+    def run(self) -> tp.Tuple[float,
+                              Individual,
+                              tp.List[float],
+                              tp.List[Individual]]:
+        pop = None
+        for epoch in range(self.epochs):
+            self.logger.info(f"epoch #{epoch+1}")
+            pop = self.create_new_population()
+            fitnesses = list(map(self.fitness_calculator, tqdm.tqdm(pop)))
+            offspring = self.select(pop, fitnesses,
+                                    fraction=self.offspring_fraction)
+            crossovered_offspring = self.crossover(pop[::2],
+                                                   pop[1::2],
+                                                   self.crossover_probability)
+            mutated_offspring = self.mutate(pop,
+                                            self.individual_mutate_probability,
+                                            self.genoelem_mutate_probability)
+            candidates = (offspring
+                          + crossovered_offspring
+                          + mutated_offspring)
+
+            candidates_fitnesses = list(
+                map(self.fitness_calculator, tqdm.tqdm(candidates)))
+
+            pop = self.select(
+                candidates,
+                candidates_fitnesses,
+                count=self.population_size)
+        fitnesses = list(map(self.fitness_calculator, tqdm.tqdm(pop)))
+        elements = [(score, elem) for score, elem in zip(fitnesses, pop)]
+        elements = sorted(elements, key=lambda x: x[0])
+        if self.select_max:
+            elements = elements[::-1]
+        best_score, best_individ = elements[0]
+        return best_score, best_individ, fitnesses, pop
 
     def create_new_population(self) -> tp.List[Individual]:
-        return self.init_population()
+        return [self.instance_builder.build()
+                for _ in range(self.population_size)]
 
     def mutate(self,
-                 population: tp.List[Individual],
-                 probability: float,
-                 mut_probability: float):
+               population: tp.List[Individual],
+               probability: float,
+               mut_probability: float):
         result = []
         for el in population:
-            if np.random.random() > probability:
+            if np.random.random() < probability:
                 result.append(self.mutation(el, mut_probability))
         return result
 
@@ -40,15 +87,14 @@ class GAEvolution:
                  individual: Individual,
                  mut_probability: float) -> Individual:
         geno = []
-        for el in individual.genotype:
-            if np.random.random() > mut_probability:
+        for el in individual.genotype.values:
+            if np.random.random() < mut_probability:
                 new_value = np.random.choice(
-                    range(*self.population_builder.phenotype_range), size=1)[0]
+                    range(*self.genoelement_range), size=1)[0]
             else:
                 new_value = el
             geno.append(new_value)
-        pheno, model = self.population_builder.ptmw.get_phenotype_and_model(geno)
-        return Individual(geno, pheno, model)
+        return self.instance_builder.build_with_genotype_as_seq(geno)
 
     def crossover(self,
                   group1: tp.List[Individual],
@@ -56,25 +102,23 @@ class GAEvolution:
                   crossover_probability: float) -> tp.List[Individual]:
         result = []
         for ind1, ind2 in zip(group1, group2):
-            if np.random.random() > crossover_probability:
-                ind1_geno = ind1.genotype
-                ind2_geno = ind2.genotype
+            if np.random.random() < crossover_probability:
+                ind1_geno = ind1.genotype.values
+                ind2_geno = ind2.genotype.values
                 N = int(len(ind1_geno)/2)
                 child1_geno = ind1_geno[:N] + ind2_geno[N:]
                 child2_geno = ind2_geno[:N] + ind1_geno[N:]
 
-                child1_pheno, child1_model = (
+                child1_individ = (
                     self
-                    .population_builder
-                    .ptmw
-                    .get_phenotype_and_model(child1_geno))
-                child2_pheno, child2_model = (
+                    .instance_builder
+                    .build_with_genotype_as_seq(child1_geno))
+                child2_individ = (
                     self
-                    .population_builder
-                    .ptmw
-                    .get_phenotype_and_model(child2_geno))
-                result.append(Individual(child1_geno, child1_pheno, child1_model))
-                result.append(Individual(child2_geno, child2_pheno, child2_model))
+                    .instance_builder
+                    .build_with_genotype_as_seq(child2_geno))
+                result.append(child1_individ)
+                result.append(child2_individ)
         return result
 
     def select(self,
@@ -84,40 +128,14 @@ class GAEvolution:
                count: int = None) -> tp.List[Individual]:
         ixs = np.argsort(fitnesses)
         if fraction is not None:
-            N = ixs.shape[0] - int(ixs.shape[0]*fraction)
+            if self.select_max:
+                n = ixs.shape[0] - int(ixs.shape[0]*fraction)
+            else:
+                n = int(ixs.shape[0]*fraction)
         elif count is not None:
-            N = ixs.shape[0] - count - 1
-        offspring = [el for el, is_valid in zip(population, ixs > N) if is_valid]
-        return offspring
-
-    def eval(self,
-             fitness_calculator: callable,
-             offspring_fraction: float = 0.2,
-             crossover_probability: float = 0.5,
-             individual_mutate_probability: float = 0.5,
-             genoelem_mutate_probability: float = 0.2,
-             epochs: int = 10
-    ) -> tp.List[Individual]:
-        pop = None
-        for epoch in range(epochs):
-            pop = self.create_new_population()
-            fitnesses = list(map(lambda x: fitness_calculator, pop))
-            offspring = self.select(pop, fitnesses, fraction=offspring_fraction)
-            crossovered_offspring = self.crossover(pop[::2],
-                                                   pop[1::2],
-                                                   crossover_probability)
-            mutated_offspring = self.mutate(pop,
-                                            individual_mutate_probability,
-                                            genoelem_mutate_probability)
-            candidates = (offspring
-                          + crossovered_offspring
-                          + mutated_offspring)
-            print(f"candidates: {len(candidates)}")
-            candidates_fitnesses = list(
-                map(lambda x: fitness_calculator, candidates))
-            pop = self.select(
-                candidates,
-                candidates_fitnesses,
-                count=self.population_builder.population_size)
-            print(f"candidates: {len(pop)}")
-            return pop
+            if self.select_max:
+                n = ixs.shape[0] - count - 1
+            else:
+                n = count + 1
+        indexes = ixs > n if self.select_max else ixs < n
+        return [el for el, is_valid in zip(population, indexes) if is_valid]

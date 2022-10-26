@@ -1,0 +1,54 @@
+enter_expr: <expr>
+grammar:
+    <expr>:
+        - <fc>$
+        - <fc>$<expr>$
+        - <fc>$<bn>$
+        - <fc>$<do>$<bn>$
+        - <fc>$<bn>$<do>$
+        - <fc>$<bn>$<expr>$
+        - <fc>$<bn>$<do>$<expr>$
+        - <fc>$<act>$<bn>$
+        - <fc>$<act>$<bn>$<do>$
+        - <fc>$<act>$<bn>$<expr>$
+        - <fc>$<act>$<bn>$<do>$<expr>$
+        - <fc>$<bn>$<act>$
+        - <fc>$<bn>$<act>$<do>$
+        - <fc>$<bn>$<act>$<expr>$
+        - <fc>$<bn>$<act>$<do>$<expr>$
+        - <fc>$<bn>$<do>$<act>$
+        - <fc>$<bn>$<do>$<act>$<expr>$
+    <fc>:
+      - layer,fc,in_features:<in_ftrs>,out_features:<out_ftrs>
+    <bn>:
+      - layer,bn,num_features:<num_ftrs>
+    <do>:
+      - layer,do,p:float_rnd_0-1
+    <in_ftrs>:
+      - int_rnd_10-20
+      - int_rnd_20-30
+      - int_rnd_30-40
+    <act>:
+      - layer,sigmoid,empty
+      - layer,tanh,empty
+      - layer,relu,empty
+    <num_ftrs>:
+      - int_rnd_10-20
+      - int_rnd_20-30
+    <out_ftrs>:
+      - int_rnd_10-20
+      - int_rnd_20-30
+      - int_rnd_30-40
+number_mapping:
+  int_rnd_10-20:
+    - 10
+    - 20
+  int_rnd_20-30:
+    - 20
+    - 30
+  int_rnd_30-40:
+    - 30
+    - 40
+  float_rnd_0-1:
+    - 0
+    - 1
