@@ -1,6 +1,7 @@
 import typing as tp
-import tqdm
+
 import numpy as np
+import tqdm
 
 import nasge.utils as nasge_utils
 from nasge.gramm_parser import InstanceBuilder, Individual

@@ -1,10 +1,11 @@
+import re
 import typing as tp
 from dataclasses import dataclass
-import numpy as np
-import re
-from nasge import utils as nasge_uils
 
+import numpy as np
 from torch import nn
+
+from nasge import utils as nasge_uils
 
 
 class BaseGrammar:
@@ -273,6 +274,7 @@ class Individual:
     genotype: InstanceGenotype
     phenotype: InstancePhenotype
     model: InstancePyTorchModel
+    full_model: nn.Module = None
 
 
 class InstanceBuilder:

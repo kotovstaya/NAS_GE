@@ -1,15 +1,17 @@
 import typing as tp
+import warnings
+
 import numpy as np
-from torch import nn
-from nasge.experiment import BaseExperiment
-from torch.utils.data import DataLoader, Dataset
-from nasge.genetic_algorithm import Individual, GAEvolution
-from nasge import gramm_parser as gp
-from nasge import utils as nasge_utils
-from torch import optim
 import torch
 import torchvision.datasets as datasets
-import warnings
+from torch import nn
+from torch import optim
+from torch.utils.data import DataLoader, Dataset
+
+from nasge import gramm_parser as gp
+from nasge import utils as nasge_utils
+from nasge.experiment import BaseExperiment
+from nasge.genetic_algorithm import Individual, GAEvolution
 
 warnings.filterwarnings("ignore")
 
@@ -51,6 +53,8 @@ class MNISTExperiment(BaseExperiment):
             genoelem_mutate_probability, epochs, select_max, optimizer_class,
             criterion, lr
         )
+        self.best_score = None
+        self.best_individ = None
         self.logger = nasge_utils.get_logger("MNISTExperiment")
 
     def train_network(self,
@@ -90,7 +94,12 @@ class MNISTExperiment(BaseExperiment):
 
     def run(self):
         best_score, best_individ, fitnesses, pops = self.evalution.run()
+        self.best_score = best_score
+        self.best_individ = best_individ
         return best_score, best_individ, fitnesses, pops
+
+    def save(self, path):
+        torch.save(self.best_individ.full_model, path)
 
 
 class MNISTDataset(Dataset):
@@ -122,7 +131,7 @@ def output_model_builder(output_size: int):
 
 
 def load_dataset(train_fraction: float):
-    mnist_trainset = datasets.MNIST(root='./../data',
+    mnist_trainset = datasets.MNIST(root='./../../data',
                                     train=True,
                                     download=True,
                                     transform=None)
@@ -134,45 +143,3 @@ def load_dataset(train_fraction: float):
     train_dataset = MNISTDataset(np.array(mnist_trainset)[train_ixs])
     valid_dataset = MNISTDataset(np.array(mnist_trainset)[valid_ixs])
     return train_dataset, valid_dataset
-
-
-if __name__ == "__main__":
-    config = nasge_utils.load_yaml("./../experiments/mnist_config.yaml")
-    parameters = config["parameters"]
-
-    train_dataset, valid_dataset = load_dataset(parameters["train_fraction"])
-
-    train_dloader = DataLoader(train_dataset,
-                               batch_size=parameters["train_batch_size"],
-                               shuffle=True)
-    valid_dloader = DataLoader(valid_dataset,
-                               batch_size=parameters["valid_batch_size"],
-                               shuffle=True)
-
-    ptmt = MNISTExperiment(
-        input_model_builder=input_model_builder(int(28*28)),
-        output_model_builder=output_model_builder(10),
-        grammar_path=parameters["grammar_path"],
-        genotype_size=parameters["genotype_size"],
-        genoelement_range=parameters["genoelement_range"],
-        grammar_builder=gp.ContextFreeGrammar,
-        genotype_builder=gp.InstanceGenotype,
-        phenotype_builder=gp.InstancePhenotype,
-        model_builder=gp.InstancePyTorchModel,
-        instance_builder_class=gp.InstanceBuilder,
-        ga_evolution_class=GAEvolution,
-        population_size=parameters["population_size"],
-        train_dloader=train_dloader,
-        valid_dloader=valid_dloader,
-        offspring_fraction=parameters["offspring_fraction"],
-        crossover_probability=parameters["crossover_prob"],
-        individual_mutate_probability=parameters["individual_mutate_prob"],
-        genoelem_mutate_probability=parameters["genoelem_mutate_prob"],
-        epochs=parameters["epochs"],
-        select_max=parameters["select_max"],
-        optimizer_class=optim.SGD,
-        criterion=nn.CrossEntropyLoss(),
-        lr=parameters["lr"]
-    )
-
-    best_score, best_individ, fitnesses, pops = ptmt.run()

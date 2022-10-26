@@ -1,11 +1,31 @@
 import typing as tp
 
 import torch.optim
+from torch import nn
+from torch.utils.data import DataLoader
 
 from nasge import gramm_parser as gp
 from nasge.genetic_algorithm import GAEvolution
-from torch import nn
-from torch.utils.data import DataLoader
+
+
+class Model(nn.Module):
+    def __init__(self,
+                 input_model_builder,
+                 output_model_builder,
+                 inner_model_input_size,
+                 inner_model_output_size,
+                 inner_model):
+        super().__init__()
+        self.input_model = input_model_builder(inner_model_input_size)
+        self.inner_model = inner_model
+        self.output_model = output_model_builder(
+            inner_model_output_size)
+
+    def forward(self, x):
+        x = self.input_model.forward(x)
+        x = self.inner_model.forward(x)
+        x = self.output_model.forward(x)
+        return x
 
 
 class BaseExperiment:
@@ -82,26 +102,16 @@ class BaseExperiment:
                    inner_model_input_size: int,
                    inner_model_output_size: int
                    ):
-        class Model(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.input_model = input_model_builder(inner_model_input_size)
-                self.inner_model = inner_model
-                self.output_model = output_model_builder(
-                                                    inner_model_output_size)
 
-            def forward(self, x):
-                x = self.input_model.forward(x)
-                x = self.inner_model.forward(x)
-                x = self.output_model.forward(x)
-                return x
-
-        return Model()
+        return Model(
+            input_model_builder,
+            output_model_builder,
+            inner_model_input_size,
+            inner_model_output_size,
+            inner_model
+        )
 
     def train(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    def inference(self, *args, **kwargs):
         raise NotImplementedError()
 
     def save(self, *args, **kwargs):
