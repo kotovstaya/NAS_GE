@@ -59,27 +59,18 @@ grammar:
     <in_ftrs>:
       - int_rnd_10-20
       - int_rnd_20-30
-      - int_rnd_30-40
     <act>:
       - layer,sigmoid,empty
+      - layer,tanh,empty
     <num_ftrs>:
       - int_rnd_10-20
     <out_ftrs>:
       - int_rnd_10-20
       - int_rnd_20-30
 number_mapping:
-  int_rnd_10-20:
-    - 10
-    - 20
-  int_rnd_20-30:
-    - 20
-    - 30
-  int_rnd_30-40:
-    - 30
-    - 40
-  float_rnd_0-1:
-    - 0
-    - 1
+  int_rnd_10-20: [10, 20]
+  int_rnd_20-30: [20, 30]
+  float_rnd_0-1: [0, 1]
 ```
 
 
@@ -99,9 +90,7 @@ parameters:
   class_count: 10
   optimizer: torch.optim.SGD
   criterion: torch.nn.CrossEntropyLoss()
-  genoelement_range:
-    - 0
-    - 30
+  genoelement_range: [0, 30]
   genotype_size: 20
   grammar_path: ./grammers/fc.yaml
   model_path: ./experiments/mnist/mnist_model.pcl
