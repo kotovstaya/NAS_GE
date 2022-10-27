@@ -39,6 +39,49 @@ These rules are fixed but the process of a generation neural network is semi-sto
 You just write the grammar in the correct format. Then run the genetic algorithm and make tea or coffee. That's all.
 In a few seconds/minutes/hours you'll have a solution.
 
+Grammar example:
+```
+enter_expr: <expr>
+grammar:
+    <expr>:
+        - <fc>$
+        - <fc>$<expr>$
+        - <fc>$<bn>$
+        - <fc>$<do>$<bn>$
+        - <fc>$<bn>$<do>$
+        - <fc>$<bn>$<expr>$
+    <fc>:
+      - layer,fc,in_features:<in_ftrs>,out_features:<out_ftrs>
+    <bn>:
+      - layer,bn,num_features:<num_ftrs>
+    <do>:
+      - layer,do,p:float_rnd_0-1
+    <in_ftrs>:
+      - int_rnd_10-20
+      - int_rnd_20-30
+      - int_rnd_30-40
+    <act>:
+      - layer,sigmoid,empty
+    <num_ftrs>:
+      - int_rnd_10-20
+    <out_ftrs>:
+      - int_rnd_10-20
+      - int_rnd_20-30
+number_mapping:
+  int_rnd_10-20:
+    - 10
+    - 20
+  int_rnd_20-30:
+    - 20
+    - 30
+  int_rnd_30-40:
+    - 30
+    - 40
+  float_rnd_0-1:
+    - 0
+    - 1
+```
+
 
 ### How use it?
 There are 4 folders:
@@ -48,6 +91,36 @@ There are 4 folders:
 4. nasge - folder with .py files
 
 See some implementation for MNIST dataset:
+
+created config for MNIST experiment:
+```
+parameters:
+  input_size: 784
+  class_count: 10
+  optimizer: torch.optim.SGD
+  criterion: torch.nn.CrossEntropyLoss()
+  genoelement_range:
+    - 0
+    - 30
+  genotype_size: 20
+  grammar_path: ./grammers/fc.yaml
+  model_path: ./experiments/mnist/mnist_model.pcl
+  population_size: 6
+  offspring_fraction: 0.9
+  crossover_prob: 0.9
+  individual_mutate_prob:  0.9
+  genoelem_mutate_prob: 0.9
+  epochs: 1
+  select_max: True
+  train_fraction:  0.9
+  train_batch_size: 256
+  valid_batch_size: 6000
+  test_batch_size: 1000
+  lr: 0.001
+
+```
+
+Create an environment and run some .sh scripts
 
 ```
 1. python -m pip install -r requirements.txt
