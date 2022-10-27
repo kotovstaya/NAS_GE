@@ -130,8 +130,8 @@ def output_model_builder(output_size: int):
     return builder
 
 
-def load_train_valid_dataset(train_fraction: float):
-    mnist_trainset = datasets.MNIST(root='./../../data',
+def load_train_valid_dataset(data_path, train_fraction: float):
+    mnist_trainset = datasets.MNIST(root=data_path,
                                     train=True,
                                     download=True,
                                     transform=None)
@@ -145,8 +145,8 @@ def load_train_valid_dataset(train_fraction: float):
     return train_dataset, valid_dataset
 
 
-def load_test_dataset():
-    mnist_testset = datasets.MNIST(root='./../../data',
+def load_test_dataset(data_path):
+    mnist_testset = datasets.MNIST(root=data_path,
                                    train=False,
                                    download=True,
                                    transform=None)

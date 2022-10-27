@@ -1,4 +1,5 @@
 import torch
+
 from torch.utils.data import DataLoader
 
 from experiment import (
@@ -11,12 +12,12 @@ from nasge import genetic_algorithm as ga
 from nasge import gramm_parser as gp
 from nasge import utils as nasge_utils
 
-
 if __name__ == "__main__":
-    config = nasge_utils.load_yaml("config.yaml")
+    config = nasge_utils.load_yaml("./experiments/mnist/config.yaml")
     parameters = config["parameters"]
 
     train_dataset, valid_dataset = load_train_valid_dataset(
+                                                "./data",
                                                 parameters["train_fraction"])
 
     train_dloader = DataLoader(train_dataset,

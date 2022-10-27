@@ -7,8 +7,8 @@ parameters:
     - 0
     - 30
   genotype_size: 20
-  grammar_path: ./../../grammers/fc.yaml
-  model_path: ./mnist_model.pcl
+  grammar_path: ./grammers/fc.yaml
+  model_path: ./experiments/mnist/mnist_model.pcl
   population_size: 6
   offspring_fraction: 0.9
   crossover_prob: 0.9
@@ -19,4 +19,5 @@ parameters:
   train_fraction:  0.9
   train_batch_size: 256
   valid_batch_size: 6000
+  test_batch_size: 1000
   lr: 0.001
