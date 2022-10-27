@@ -47,7 +47,7 @@ There are 4 folders:
 3. grammers - folder with grammars in .yaml format 
 4. nasge - folder with .py files
 
-See some implementation for MNST dataset:
+See some implementation for MNIST dataset:
 
 ```
 1. python -m pip install -r requirements.txt
