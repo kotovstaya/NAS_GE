@@ -1,8 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
 
-from mnist import (
-    load_dataset,
+from experiment import (
+    load_train_valid_dataset,
     MNISTExperiment,
     input_model_builder,
     output_model_builder
@@ -13,10 +13,11 @@ from nasge import utils as nasge_utils
 
 
 if __name__ == "__main__":
-    config = nasge_utils.load_yaml("./mnist_config.yaml")
+    config = nasge_utils.load_yaml("config.yaml")
     parameters = config["parameters"]
 
-    train_dataset, valid_dataset = load_dataset(parameters["train_fraction"])
+    train_dataset, valid_dataset = load_train_valid_dataset(
+                                                parameters["train_fraction"])
 
     train_dloader = DataLoader(train_dataset,
                                batch_size=parameters["train_batch_size"],

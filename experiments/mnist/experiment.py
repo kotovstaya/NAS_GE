@@ -130,7 +130,7 @@ def output_model_builder(output_size: int):
     return builder
 
 
-def load_dataset(train_fraction: float):
+def load_train_valid_dataset(train_fraction: float):
     mnist_trainset = datasets.MNIST(root='./../../data',
                                     train=True,
                                     download=True,
@@ -143,3 +143,32 @@ def load_dataset(train_fraction: float):
     train_dataset = MNISTDataset(np.array(mnist_trainset)[train_ixs])
     valid_dataset = MNISTDataset(np.array(mnist_trainset)[valid_ixs])
     return train_dataset, valid_dataset
+
+
+def load_test_dataset():
+    mnist_testset = datasets.MNIST(root='./../../data',
+                                   train=False,
+                                   download=True,
+                                   transform=None)
+
+    test_dataset = MNISTDataset(np.array(mnist_testset))
+    return test_dataset
+
+
+class MNISTInference:
+    def __init__(self, model_path: str, dataloader: DataLoader):
+        self.model_path = model_path
+        self.X, self.true_labels = next(iter(dataloader))
+        self.model = self._load_model()
+
+    def _load_model(self) -> nn.Module:
+        return torch.load(self.model_path)
+
+    def inference(self):
+        preds = self.model.forward(self.X)
+        lbls = self.true_labels[:,0].detach().numpy()
+        preds = (preds
+                 .argmax(dim=1, keepdim=True)[:, 0]
+                 .detach()
+                 .numpy())
+        return lbls, preds
