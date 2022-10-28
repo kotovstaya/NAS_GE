@@ -140,3 +140,4 @@ INFO:Inference:Model(
 )
 ```
 This is an optimal architecture for mnist task which have been found.
+
